@@ -1,0 +1,12 @@
+[Unit]
+Description=Logstash
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/logstash-2.3.2/bin/logstash -f /etc/logstash.conf
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

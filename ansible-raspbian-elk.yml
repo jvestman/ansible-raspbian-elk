@@ -1,0 +1,48 @@
+---
+- name: Create RTL_433 ELK -stack to Raspberry Pi
+  user: pi
+  hosts: all
+  sudo: yes
+  tasks:
+    - name: Get JFFI
+      git: repo=https://github.com/jnr/jffi dest=/tmp/jffi
+    - name: Build jffi
+      command: ant chdir=/tmp/jffi creates=/tmp/jffi/build/jni/libjffi-1.2.so
+    - name: Get Logstash
+      get_url: url=https://download.elastic.co/logstash/logstash/logstash-2.3.2.tar.gz  dest=/opt/ force=no
+    - name: Extract Logstash to /opt
+      unarchive: src=/opt/logstash-2.3.2.tar.gz dest=/opt/ copy=no creates=/opt/logstash-2.3.2
+    - name: Copy libjffi to logstash
+      command: cp /tmp/jffi/build/jni/libjffi-1.2.so /opt/logstash-2.3.2/vendor/jruby/lib/jni/arm-Linux/libjffi-1.2.so
+    - name: Change ownership of Logstash folder to pi
+      file: path=/opt/logstash-2.3.2 owner=pi group=pi recurse=yes
+    - name: Get Elasticsearch
+      get_url: url=https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.3.3/elasticsearch-2.3.3.tar.gz  dest=/opt/ force=no
+    - name: Extract Elasticsearch to /opt
+      unarchive: src=/opt/elasticsearch-2.3.3.tar.gz dest=/opt/ copy=no creates=/opt/elasticsearch-2.3.3
+    - name: Change ownership of Elasticsearch folder to pi
+      file: path=/opt/elasticsearch-2.3.3 owner=pi group=pi recurse=yes
+    - name: Get Kibana
+      get_url: url=https://download.elastic.co/kibana/kibana/kibana-4.5.1-linux-x64.tar.gz dest=/opt/ force=no
+    - name: Extract Kibana to /opt
+      unarchive: src=/opt/kibana-4.5.1-linux-x64.tar.gz dest=/opt/ copy=no creates=/opt/kibana-4.5.1-linux-x64
+    - name: Set change user of Kibana directory to be pi
+      file: path=/opt/kibana-4.5.1-linux-x64 owner=pi group=pi recurse=yes
+    - name: Remove Node.js from Kibana
+      file: path=/opt/kibana-4.5.1-linux-x64/node state=absent
+    - name: Create config file for Logstash
+      template: src=templates/logstash.conf.j2 dest=/etc/logstash.conf
+    - name: Create config file for Kibana
+      template: src=templates/kibana.yml.j2 dest=/opt/kibana-4.5.1-linux-x64/config/kibana.yml owner=pi group=pi
+    - name: Create systemd unit file for logstash
+      template: src=templates/logstash.service.j2 dest=/lib/systemd/system/logstash.service
+    - name: Create systemd unit file for elastic search
+      template: src=templates/elasticsearch.service.j2 dest=/lib/systemd/system/elasticsearch.service
+    - name: Create systemd unit file for Kibana
+      template: src=templates/kibana.service.j2 dest=/lib/systemd/system/kibana.service
+    - name: Start Elasticsearch service
+      service: name=elasticsearch state=started enabled=yes
+    - name: Start Logstash service
+      service: name=logstash state=started enabled=yes
+    - name: Start Kibana service
+      service: name=kibana state=started enabled=yes

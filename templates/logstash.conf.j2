@@ -1,0 +1,9 @@
+input {
+  pipe {
+    command => "rtl_433 -F json"
+    }
+}
+filter{json{source=>"message"}}
+output {
+  elasticsearch { }
+}

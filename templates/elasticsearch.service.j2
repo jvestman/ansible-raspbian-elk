@@ -1,0 +1,12 @@
+[Unit]
+Description=Elasticsearch
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/elasticsearch-2.3.3/bin/elasticsearch
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
